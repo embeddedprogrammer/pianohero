@@ -95,11 +95,7 @@ public class ControlBar extends JPanel
 			@Override
 			public void click()
 			{
-				if(Tester2.getInstance().getRandomBool())
-					Tester2.getInstance().generateRandomScore();
-				else
-					Tester2.getInstance().generateRandomChords();
-				//Tester2.getInstance().generateRandomScales();
+				Tester2.getInstance().generateRandomScore();
 			}
 		};
 		ptsLabel = new BorderedLabel("Points: 0");

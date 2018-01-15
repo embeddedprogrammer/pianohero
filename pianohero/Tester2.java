@@ -66,6 +66,7 @@ import abc.ui.scoretemplates.ScoreAttribute;
 import abc.ui.swing.ScoreTemplate;
 import abc.ui.swing.JScoreElementAbstract;
 
+// This should really be called MainClass or PianoHero or something instead of Tester2
 public class Tester2 implements NoteReceiver
 {
 	private JFXPanel jfxPianoPanel; // The JavaFX component(s)
@@ -111,10 +112,11 @@ public class Tester2 implements NoteReceiver
 
 	Tune trebleTune;
 	Tune bassTune;
+	boolean useSharps;
 	JScoreComponent trebleScoreUI;
 	JScoreComponent bassScoreUI;
 	ScoreTemplate scoreTemplate;
-	
+
 	JPanel jpanel;
 
 	private void initComponents()
@@ -152,7 +154,7 @@ public class Tester2 implements NoteReceiver
 		// Set Attributes
 		scoreTemplate = new DefaultScoreTemplate();
 		scoreTemplate.setAttributeSize(ScoreAttribute.NOTATION_SIZE, 80);
-		//scoreTemplate.setAttributeSize(ScoreAttribute.NOTE_SPACING, 10f);
+		// scoreTemplate.setAttributeSize(ScoreAttribute.NOTE_SPACING, 10f);
 		scoreTemplate.getEngraver().setMode(Engraver.DEFAULT);
 		// scoreTemplate.setAttributeSize(ScoreAttribute.MARGIN_TOP, 100);
 		// scoreTemplate.setAttributeSize(ScoreAttribute.MARGIN_BOTTOM, 100);
@@ -201,11 +203,11 @@ public class Tester2 implements NoteReceiver
 			}
 		});
 	}
-	
+
 	// ****************************** EVENTS ******************************
 
 	File currentFile;
-	
+
 	public void openFile()
 	{
 		JFileChooser fileChooser = new JFileChooser();
@@ -216,15 +218,15 @@ public class Tester2 implements NoteReceiver
 			readScoreFromFile();
 		}
 	}
-	
+
 	public void saveFile()
 	{
-		if(currentFile != null)
+		if (currentFile != null)
 			writeScoreToFile();
 		else
 			saveFileAs();
 	}
-	
+
 	public void saveFileAs()
 	{
 		JFileChooser fileChooser = new JFileChooser();
@@ -265,19 +267,29 @@ public class Tester2 implements NoteReceiver
 			e.printStackTrace();
 		}
 	}
-	
-	private static final int RND_SEQUENCE_LENGTH = 15; 
-	private static final int RND_NOTES_PER_CHORD = 1; 
-	private static final int TREBLE_CENTER_LINE = 70; 
-	private static final int BASS_CENTER_LINE = 50; 
+
+	private static final int RND_SEQUENCE_LENGTH = 15;
+	private static final int RND_NOTES_PER_CHORD = 1;
+	private static final int TREBLE_CENTER_LINE = 70;
+	private static final int BASS_CENTER_LINE = 50;
 	private static final int MAX_RND_DIST_FROM_CENTER = 14;
-	
+
 	public int getCenterLine(Staff staff)
 	{
 		return (staff == Staff.TREBLE) ? TREBLE_CENTER_LINE : BASS_CENTER_LINE;
 	}
-	
+
 	public void generateRandomScore()
+	{
+		print("Generating random score");
+		if (getRandomBool())
+			generateRandomNotes();
+		else
+			generateRandomChords();
+		// generateRandomScales();
+	}
+
+	public void generateRandomNotes()
 	{
 		clearRndScore();
 		for(int i = 0; i < RND_SEQUENCE_LENGTH; i++)
@@ -291,117 +303,123 @@ public class Tester2 implements NoteReceiver
 				if(j == 0 ||
 					(findNote(getVoice(Staff.TREBLE).size() - 2, pKeyNumber, Staff.TREBLE) == null &&
 					findNote(getVoice(Staff.BASS).size() - 2, pKeyNumber, Staff.BASS) == null))
-					addNoteToEndOfTune(pKeyNumber, staff, j > 0, getRandomBool());
+					addNoteToEndOfTune(pKeyNumber, staff, j > 0);
 			}
-			if(i % 2 == 0)
-				addNotesSeparator();
-			if(i % 4 == 0)
-				addBarLine();
 		}
 		magicMakeStaffsLineUp();
 	}
-	
-	private static final int[] CHORD_MAJOR = {0, 4, 7};
-	private static final int[] CHORD_MINOR = {0, 3, 7};
-	private static final int[] CHORD_AUG = {0, 4, 8};
-	private static final int[] CHORD_DIM = {0, 3, 6};
-	private static final int[] CHORD_6TH = {0, 4, 7, 9};
-	private static final int[] CHORD_7TH = {0, 4, 7, 10};
-	private static final int[][] CHORDS = 
-		{CHORD_MAJOR, CHORD_MINOR, 
-		CHORD_AUG, CHORD_DIM, CHORD_6TH, CHORD_7TH};
-	private static final String[] KEYS = {"C", "G", "D", "A", "F", "Bb", "Eb"};
-	
+
+	private static final int[] CHORD_MAJOR = { 0, 4, 7 };
+	private static final int[] CHORD_MINOR = { 0, 3, 7 };
+	private static final int[] CHORD_AUG = { 0, 4, 8 };
+	private static final int[] CHORD_DIM = { 0, 3, 6 };
+	private static final int[] CHORD_6TH = { 0, 4, 7, 9 };
+	private static final int[] CHORD_7TH = { 0, 4, 7, 10 };
+	private static final int[][] CHORDS = { CHORD_MAJOR, CHORD_MINOR, CHORD_AUG, CHORD_DIM, CHORD_6TH, CHORD_7TH };
+	private static final String[] SHARP_KEYS = { "C", "G", "D", "A", "E", "B" };    // , "F#", "C#"};
+	private static final String[] FLAT_KEYS = { "C", "F", "Bb", "Eb", "Ab", "Db" }; // , "Gb", "Cb"};
+
 	//
-	//add octave
-	//drop note
-	
+	// add octave
+	// drop note
+
 	public void clearRndScore()
 	{
-		clearScore(KEYS[getRandom(0, KEYS.length - 1)]);
+		useSharps = getRandomBool();
+		if (useSharps)
+			clearScore(SHARP_KEYS[getRandom(0, SHARP_KEYS.length - 1)]);
+		else
+			clearScore(FLAT_KEYS[getRandom(0, FLAT_KEYS.length - 1)]);
+
 	}
-	
+
 	public void generateRandomChords()
 	{
 		clearRndScore();
-		for(int i = 0; i < RND_SEQUENCE_LENGTH; i++)
+		for (int i = 0; i < RND_SEQUENCE_LENGTH; i++)
 			addRandomChord();
 		magicMakeStaffsLineUp();
 	}
-	
+
 	public void addRandomChord()
 	{
 		int[] chord = generateRandomChord();
 		Staff staff = getRandomBool() ? Staff.TREBLE : Staff.BASS;
-		int chordStartingNote = getRandom(
-				getCenterLine(staff) - MAX_RND_DIST_FROM_CENTER,
-				getCenterLine(staff) + MAX_RND_DIST_FROM_CENTER - chord[chord.length - 1]);
-		for(int j = 0; j < chord.length; j++)
+		int chordStartingNote = getRandom(getCenterLine(staff)
+				- MAX_RND_DIST_FROM_CENTER, getCenterLine(staff)
+				+ MAX_RND_DIST_FROM_CENTER - chord[chord.length - 1]);
+		for (int j = 0; j < chord.length; j++)
 		{
 			int pKeyNumber = chordStartingNote + chord[j];
-			addNoteToEndOfTune(pKeyNumber, staff, j > 0, getRandomBool());
+			addNoteToEndOfTune(pKeyNumber, staff, j > 0);
 		}
 	}
-	
+
 	public int[] generateRandomChord()
 	{
 		int[] chord = CHORDS[getRandom(0, CHORDS.length - 1)].clone();
-		if(getRandomBool()) //Optionally invert
+		if (getRandomBool()) // Optionally invert
 			chord = invertChord(chord, getRandom(0, 3));
-		if(getRandomBool()) //Optionally add octave
+		if (getRandomBool()) // Optionally add octave
 			chord = addElement(chord, 12);
-		if(getRandomBool() || (chord.length > 4)) //Optionally drop note
+		if (getRandomBool() || (chord.length > 4)) // Optionally drop note
 			chord = removeElement(chord, getRandom(0, chord.length - 1));
 		return chord;
 	}
-	
+
 	public String printChord(int[] chord)
 	{
 		String text = "";
-		for(int i = 0; i < chord.length; i++)
+		for (int i = 0; i < chord.length; i++)
 			text += chord[i] + " ";
 		return text;
 	}
-	
+
+	// TODO: I'm pretty sure this isn't called inverting the chord, it is called something else.
 	public int[] invertChord(int[] chord, int numOfTimes)
 	{
+		// for each specified note, raise by an octave
 		numOfTimes = (numOfTimes % chord.length);
-		for(int i = 0; i < numOfTimes; i++)
+		for (int i = 0; i < numOfTimes; i++)
 			chord[i] += 12;
 		int[] newChord = new int[chord.length];
-		for(int i = 0; i < chord.length; i++)
+
+		// shift chord and subtract so that the lowest note is still 0.
+		// I suppose these chords are still generic; they aren't yet assigned
+		// to a specific note.
+		for (int i = 0; i < chord.length; i++)
 			newChord[i] = chord[(i + numOfTimes) % chord.length];
 		int lowestNote = newChord[0];
-		for(int i = 0; i < chord.length; i++)
+		for (int i = 0; i < chord.length; i++)
 			newChord[i] -= lowestNote;
 		return newChord;
 	}
-	
+
 	public int[] removeElement(int[] input, int position)
 	{
 		int[] result = new int[input.length - 1];
 		int j = 0;
-		for(int i = 0; i < input.length; i++)
-			if(i != position)
+		for (int i = 0; i < input.length; i++)
+			if (i != position)
 				result[j++] = input[i];
 		return result;
 	}
-	
+
 	public int[] addElement(int[] input, int element)
 	{
 		int[] result = new int[input.length + 1];
-		for(int i = 0; i < input.length; i++)
+		for (int i = 0; i < input.length; i++)
 			result[i] = input[i];
 		result[input.length] = element;
 		return result;
 	}
-	
-	private static final int[] SCALE_MAJOR = {0, 2, 4, 5, 7, 9, 11, 12};	
-	
+
+	private static final int[] SCALE_MAJOR = { 0, 2, 4, 5, 7, 9, 11, 12 };
+
 	public void generateRandomScales()
 	{
 		clearRndScore();
-		for(int i = 0; i < RND_SEQUENCE_LENGTH / 7; i++)
+		for (int i = 0; i < RND_SEQUENCE_LENGTH / 7; i++)
 		{
 			int[] chord = SCALE_MAJOR;
 			Staff staff = getRandomBool() ? Staff.TREBLE : Staff.BASS;
@@ -411,27 +429,27 @@ public class Tester2 implements NoteReceiver
 			for(int j = 0; j < chord.length; j++)
 			{
 				int pKeyNumber = chordStartingNote + chord[j];
-				addNoteToEndOfTune(pKeyNumber, staff, false, getRandomBool());
+				addNoteToEndOfTune(pKeyNumber, staff, false);
 			}
 		}
 		magicMakeStaffsLineUp();
 	}
-	
+
 	public int getRandom(int min, int max)
 	{
-		return (int)(min + (Math.random() * (max - min + 1))); 
+		return (int) (min + (Math.random() * (max - min + 1)));
 	}
-	
+
 	public boolean getRandomBool()
 	{
-		return (Math.random() > .5); 
+		return (Math.random() > .5);
 	}
-	
+
 	// ****************************** EVENTS ******************************
 
 	public void keyPress(KeyEvent ke)
 	{
-		if(ControlBar.getInstance().selectedButton == ControlBar.getInstance().editButton)
+		if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().editButton)
 		{
 			if (ke.getKeyCode() == KeyEvent.VK_DELETE)
 			{
@@ -454,13 +472,15 @@ public class Tester2 implements NoteReceiver
 				moveSelectedNoteHorizontally(-1);
 			}
 		}
-		else if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().recordButton)
+		else if (ControlBar.getInstance().selectedButton == ControlBar
+				.getInstance().recordButton)
 		{
-					
+
 		}
-		else if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().gameButton)
+		else if (ControlBar.getInstance().selectedButton == ControlBar
+				.getInstance().gameButton)
 		{
-					
+
 		}
 
 	}
@@ -475,31 +495,33 @@ public class Tester2 implements NoteReceiver
 	};
 
 	Staff selectedStaff;
-	
+
 	public void m2()
 	{
 		print(getScoreUI(Staff.TREBLE).getJTune().getScoreElements().toString());
 		print("Positions:");
-		for(int i = 0; i < getVoice(Staff.TREBLE).size(); i++)
+		for (int i = 0; i < getVoice(Staff.TREBLE).size(); i++)
 		{
-			MusicElement me = (MusicElement)getVoice(Staff.TREBLE).get(i);
-			JScoreElementAbstract jme = (JScoreElementAbstract)findJScoreElement(me, Staff.TREBLE);
-			if(jme == null)
+			MusicElement me = (MusicElement) getVoice(Staff.TREBLE).get(i);
+			JScoreElementAbstract jme = (JScoreElementAbstract) findJScoreElement(
+					me, Staff.TREBLE);
+			if (jme == null)
 				print("element " + me.toString() + " with ref " + me.getReference() + " not found");
 			else
 			{
-				print("element " + me.toString() + " with ref " + me.getReference() + " found:");
+				print("element " + me.toString() + " with ref " + me.getReference() 	+ " found:");
 				print("    " + jme.toString() + " at " + jme.getBase());
 			}
-				
+
 		}
 	}
+
 	public void magicMakeStaffsLineUp()
 	{
 		double lastx1 = 0;
 		double lastx2 = 0;
 		double x = 0;
-		for(int i = 2; i < getVoice(Staff.TREBLE).size(); i++)
+		for (int i = 2; i < getVoice(Staff.TREBLE).size(); i++)
 		{
 			MusicElement me1 = (MusicElement)getVoice(Staff.TREBLE).get(i);
 			MusicElement me2 = (MusicElement)getVoice(Staff.BASS).get(i);
@@ -509,15 +531,15 @@ public class Tester2 implements NoteReceiver
 			{
 				Point2D b1 = jme1.getBase();
 				Point2D b2 = jme2.getBase();
-//				double curx1 = b1.getX();
-//				double curx2 = b2.getX();
-//				double wid1 = curx1 - lastx1;
-//				double wid2 = curx2 - lastx2;
-//				x = Math.max(Math.max(curx1, curx2), 
-//						Math.max(lastx1 + wid1, lastx2 + wid2));
-//				lastx1 = curx1;
-//				lastx2 = curx2;
-				if(i == 2)
+				// double curx1 = b1.getX();
+				// double curx2 = b2.getX();
+				// double wid1 = curx1 - lastx1;
+				// double wid2 = curx2 - lastx2;
+				// x = Math.max(Math.max(curx1, curx2),
+				// Math.max(lastx1 + wid1, lastx2 + wid2));
+				// lastx1 = curx1;
+				// lastx2 = curx2;
+				if (i == 2)
 					x = Math.max(b1.getX(), b2.getX());
 				b1.setLocation(x, b1.getY());
 				b2.setLocation(x, b2.getY());
@@ -533,15 +555,15 @@ public class Tester2 implements NoteReceiver
 
 	public void clickStaff(Staff staff, java.awt.event.MouseEvent e)
 	{
-		if(e.getButton() == 3)
+		if (e.getButton() == 3)
 		{
 			magicMakeStaffsLineUp();
-//			Point2D base = selectedJScoreElement.getBase();
-//			base.setLocation(e.getPoint().x, base.getY());
-//			((JScoreElementAbstract)selectedJScoreElement).setBase(base);
-//			getScoreUI(staff).setBufferedImageOutdated(true);
-//			getScoreUI(staff).repaint();
-			
+			// Point2D base = selectedJScoreElement.getBase();
+			// base.setLocation(e.getPoint().x, base.getY());
+			// ((JScoreElementAbstract)selectedJScoreElement).setBase(base);
+			// getScoreUI(staff).setBufferedImageOutdated(true);
+			// getScoreUI(staff).repaint();
+
 		}
 		print(e.getPoint());
 		if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().editButton)
@@ -562,18 +584,21 @@ public class Tester2 implements NoteReceiver
 				// dragged, we want to rely on the music element, not the outdated JScoreElement.
 				selectedMusicElement = getOriginalMusicElement(selectedJScoreElement);
 				selectedMultiMusicElement = getOriginalMultiMusicElement(selectedJScoreElement);
+				print("Index: " + getMusicElementIndex(selectedMusicElement)); 
+				if(selectedMusicElement instanceof Note && !((Note)selectedMusicElement).isRest())
+					print("Key Number:" + getKeyNumber((Note)selectedMusicElement, getMusicElementIndex(selectedMusicElement)));
 				getSelectedScoreUI().repaint();
 				ControlBar.getInstance().ptsLabel.setText("element at " + selectedJScoreElement.getBase());
 			}
-			frame.requestFocus();					
+			frame.requestFocus();
 		}
 	}
-	
+
 	public void buttonToggle(ControlBar.CustomToggleButton button)
 	{
 		gameIndexWithinScore = 2;
 		reloadBothScores();
-		if(button == ControlBar.getInstance().gameButton)
+		if (button == ControlBar.getInstance().gameButton)
 		{
 			pts = 0;
 			timeStartedPlaying = new Date().getTime();
@@ -582,17 +607,17 @@ public class Tester2 implements NoteReceiver
 			addToPts(0);
 		}
 	}
-	
+
 	@Override
 	public void noteOff(int pKeyNumber)
 	{
-		
+
 	}
 
 	@Override
 	public void noteOn(int pKeyNumber)
 	{
-		//print(pKeyNumber);
+		// print(pKeyNumber);
 		long timeStamp = new Date().getTime();
 		boolean combineWithLast = timeStamp - lastTimePressed < syncThresholdInMs;
 		if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().recordButton)
@@ -613,8 +638,7 @@ public class Tester2 implements NoteReceiver
 		}
 		else if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().editButton)
 		{
-			if (selectedMusicElement == null
-					|| !(selectedMusicElement instanceof Note))
+			if (selectedMusicElement == null || !(selectedMusicElement instanceof Note))
 				return;
 
 			Voice v = getSelectedVoice();
@@ -622,35 +646,36 @@ public class Tester2 implements NoteReceiver
 			if (note.isRest())
 				return;
 
-			setNoteKeyNumber(note, pKeyNumber);
+			setNoteKeyNumber(note, pKeyNumber, getMusicElementIndex(selectedMusicElement));
 			reloadScoreUI(selectedStaff);
 			magicMakeStaffsLineUp();
 		}
 		else if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().gameButton)
 		{
-			// If user presses a key in less than 100ms, they are probably playing a 
+			// If user presses a key in less than 100ms, they are probably playing a
 			// note already played in the measure a second time!
-			if(combineWithLast)
+			if (combineWithLast)
 				return;
 			int ptsDiff = addResults(
-					findNoteAndAct(gameIndexWithinScore, pKeyNumber, Staff.TREBLE), 
+					findNoteAndAct(gameIndexWithinScore, pKeyNumber, Staff.TREBLE),
 					findNoteAndAct(gameIndexWithinScore, pKeyNumber, Staff.BASS));
-			if(ptsDiff == -1)
+			if (ptsDiff == -1)
 				soundNote(pKeyNumber);
 			addToPts(ptsDiff);
-				
-			while(isGroupPlayed(gameIndexWithinScore, Staff.TREBLE) && isGroupPlayed(gameIndexWithinScore, Staff.BASS))
+
+			while (isGroupPlayed(gameIndexWithinScore, Staff.TREBLE)
+					&& isGroupPlayed(gameIndexWithinScore, Staff.BASS))
 			{
 				gameIndexWithinScore++;
-				if(gameIndexWithinScore >= getVoice(Staff.TREBLE).size() || gameIndexWithinScore >= getVoice(Staff.BASS).size())
+				if (gameIndexWithinScore >= getVoice(Staff.TREBLE).size()
+						|| gameIndexWithinScore >= getVoice(Staff.BASS).size())
 					advanceScore();
-				lastTimePressed = timeStamp; 
+				lastTimePressed = timeStamp;
 			}
 		}
 	}
 
-   
-	public void soundNote(int pKeyNumber) 
+	public void soundNote(int pKeyNumber)
 	{
 		try
 		{
@@ -673,83 +698,84 @@ public class Tester2 implements NoteReceiver
 			for (int i = 0; i < length; i++)
 			{
 				double angle = 2.0 * Math.PI * i / period;
-				int amplitude = (int)(Math.sin(angle) * 16f); //Before was 127f (quite loud)
-				amplitude = amplitude % 8; //add distortion
-				data[i] = (byte)(amplitude); 
+				int amplitude = (int) (Math.sin(angle) * 16f); // Before was 127f
+																				// (quite loud)
+				amplitude = amplitude % 8; // add distortion
+				data[i] = (byte) (amplitude);
 			}
 
 			int count = line.write(data, 0, length);
 			line.drain();
 			line.close();
 		}
-		catch(Exception e)
+		catch (Exception e)
 		{
 			e.printStackTrace();
 		}
 	}
 
-	
 	public void advanceScore()
 	{
 		generateRandomScore();
 	}
-	
+
 	int pts;
 	long timeStartedPlaying;
 	int wrong;
 	int right;
-	
+
 	public void addToPts(int diff)
 	{
 		pts += diff;
-		if(diff == 1)
+		if (diff == 1)
 			right++;
-		else if(diff == -1)
+		else if (diff == -1)
 			wrong++;
 		ControlBar.getInstance().setPts(pts);
-		ControlBar.getInstance().setAccuracy(((double)right)/(((double)wrong) + ((double)right)));
-		double timespanInMin = ((double)(new Date().getTime() - timeStartedPlaying))/60/1000;
+		ControlBar.getInstance().setAccuracy(
+				((double) right) / (((double) wrong) + ((double) right)));
+		double timespanInMin = ((double) (new Date().getTime() - timeStartedPlaying)) / 60 / 1000;
 		ControlBar.getInstance().setTime(timespanInMin);
-		ControlBar.getInstance().setSpeed(((double)right)/timespanInMin);
+		ControlBar.getInstance().setSpeed(((double) right) / timespanInMin);
 	}
-	
+
 	List<String> trebleScoreList;
 	List<String> bassScoreList;
-	
+
 	int gameIndexWithinScore;
 	int gameIndexOfScore;
-	
+
 	public void moveToLineInMusic(int newIndex, Staff staff)
 	{
 		getScoreList(staff).set(gameIndexOfScore, saveTuneToString(staff));
 		gameIndexOfScore = newIndex;
 		loadTuneFromString(staff, getScoreList(staff).get(newIndex));
 	}
-	
+
 	public List<String> getScoreList(Staff staff)
 	{
 		return (staff == Staff.TREBLE) ? trebleScoreList : bassScoreList;
 	}
-	
+
 	public int addResults(Result r1, Result r2)
 	{
-		if(r1 == Result.RIGHT || r2 == Result.RIGHT)
+		if (r1 == Result.RIGHT || r2 == Result.RIGHT)
 			return 1;
-		else if(r1 == Result.WRONG && r2 == Result.WRONG)
+		else if (r1 == Result.WRONG && r2 == Result.WRONG)
 			return -1;
 		else
 			return 0;
 	}
-	
+
 	enum Result
 	{
 		WRONG, RIGHT, ALREADY_PLAYED
 	}
-	
+
 	public Result findNoteAndAct(int index, int pKeyNumber, Staff staff)
 	{
 		Note note = findNote(index, pKeyNumber, staff);
-		if(note == null)
+		if (note == null)
 			return Result.WRONG;
 		if (!note.isPlayed())
 		{
@@ -760,44 +786,46 @@ public class Tester2 implements NoteReceiver
 		}
 		return Result.ALREADY_PLAYED;
 	}
-	
+
 	public boolean isGroupPlayed(int index, Staff staff)
 	{
-		MusicElement me = (MusicElement)getVoice(staff).get(index);
-		if(me instanceof Note)
-			return ((Note)me).isPlayed() || ((Note)me).isRest();
-		if(me instanceof MultiNote)
-			for(Note n : (Vector<Note>)((MultiNote)me).getNotes())
-				if(!n.isPlayed() && !n.isRest())
+		MusicElement me = (MusicElement) getVoice(staff).get(index);
+		if (me instanceof Note)
+			return ((Note) me).isPlayed() || ((Note) me).isRest();
+		if (me instanceof MultiNote)
+			for (Note n : (Vector<Note>) ((MultiNote) me).getNotes())
+				if (!n.isPlayed() && !n.isRest())
 					return false;
 		return true;
 	}
-	
+
 	public JNote findJNote(Note note, Staff staff)
 	{
-		//print(note.getReference());
-		return (JNote)getScoreUI(staff).getJTune().getRenditionObjectFor(note.getReference());
+		// print(note.getReference());
+		return (JNote) getScoreUI(staff).getJTune().getRenditionObjectFor(
+				note.getReference());
 	}
-	
+
 	public JScoreElement findJScoreElement(MusicElement me, Staff staff)
 	{
-		//print(note.getReference());
-		return getScoreUI(staff).getJTune().getRenditionObjectFor(me.getReference());
+		// print(note.getReference());
+		return getScoreUI(staff).getJTune().getRenditionObjectFor(
+				me.getReference());
 	}
-	
+
 	public Note findNote(int index, int pKeyNumber, Staff staff)
 	{
-		MusicElement me = (MusicElement)getVoice(staff).get(index);
-		if(me instanceof Note)
+		MusicElement me = (MusicElement) getVoice(staff).get(index);
+		if (me instanceof Note)
 		{
-			if(!((Note)me).isRest() && getKeyNumber((Note)me) == pKeyNumber)
-				return (Note)me;
+			if (!((Note) me).isRest() && getKeyNumber((Note) me, index) == pKeyNumber)
+				return (Note) me;
 		}
-		else if(me instanceof MultiNote)
+		else if (me instanceof MultiNote)
 		{
-			for(Note n : (Vector<Note>)((MultiNote)me).getNotes())
+			for (Note n : (Vector<Note>) ((MultiNote) me).getNotes())
 			{
-				if(getKeyNumber(n) == pKeyNumber)
+				if (getKeyNumber(n, index) == pKeyNumber)
 					return n;
 			}
 		}
@@ -810,7 +838,7 @@ public class Tester2 implements NoteReceiver
 	{
 		System.out.println(s);
 	}
-	
+
 	public <E> void printJTune(Collection<E> c)
 	{
 		print(c.getClass() + " with " + c.size() + " items");
@@ -822,7 +850,7 @@ public class Tester2 implements NoteReceiver
 			}
 			else if (o instanceof JGroupOfNotes)
 			{
-				printArray(((JGroupOfNotes)o).getJNotes());
+				printArray(((JGroupOfNotes) o).getJNotes());
 			}
 			else
 			{
@@ -830,7 +858,7 @@ public class Tester2 implements NoteReceiver
 			}
 		}
 	}
-	
+
 	public <E> void printArray(Object[] c)
 	{
 		print(c.getClass() + " with " + c.length + " items");
@@ -845,7 +873,7 @@ public class Tester2 implements NoteReceiver
 				print(o.getClass() + " - " + o.toString());
 			}
 		}
-	}	
+	}
 
 	public <E> void printCollection(Collection<E> c)
 	{
@@ -888,16 +916,16 @@ public class Tester2 implements NoteReceiver
 		line.setSize(10000, 1); // 10000 wide so it will always be wider than the
 										// applet and force the line onto the next row.
 		line.setBackground(jpanel.getBackground());
-		//line.setBackground(Color.BLUE);
+		// line.setBackground(Color.BLUE);
 		jpanel.add(line);
 	}
 
 	public void initializePianoPanel()
 	{
 		jfxPianoPanel.setScene(PianoKeyboard.createDefaultScene());
-		
+
 		// Connect to it to show events
-		PianoKeyboard.getInstance().addReciever(Tester2.getInstance()); 
+		PianoKeyboard.getInstance().addReciever(Tester2.getInstance());
 
 		// GameController gc = new GameController(staff);
 		// pk.addReciever(gc); //Connect this to play game.
@@ -930,7 +958,7 @@ public class Tester2 implements NoteReceiver
 		return Staff.values()[1 - staff.ordinal()];
 	}
 
-// *************************** HIGH-LEVEL EDITING METHODS ***************************
+	// *************************** HIGH-LEVEL EDITING METHODS ***************************
 
 	public void loadTuneFromString(Staff staff, String tuneAsString)
 	{
@@ -942,11 +970,11 @@ public class Tester2 implements NoteReceiver
 		getScoreUI(staff).setTuneAndTemplate(tune, scoreTemplate);
 		gameIndexWithinScore = 2;
 	}
-	
+
 	public String saveTuneToString(Staff staff)
 	{
 		String score = "";
-		for(MusicElement me : (Vector<MusicElement>)getVoice(staff))
+		for (MusicElement me : (Vector<MusicElement>) getVoice(staff))
 		{
 			score += getMusicElementRepresentation(me, staff);
 		}
@@ -959,16 +987,20 @@ public class Tester2 implements NoteReceiver
 			return;
 		else if (selectedMusicElement instanceof Note)
 			removeNoteAtIndex(getSelectedVoice(), (Note) selectedMusicElement,
-					getSelectedElementX());
+					getSelectedElementIndex());
 		else
-			removeElementAtIndex(getSelectedVoice(), getSelectedElementX());
+			removeElementAtIndex(getSelectedVoice(), getSelectedElementIndex());
 		reloadScoreUI(selectedStaff);
 		magicMakeStaffsLineUp();
 		selectedMusicElement = null;
 		selectedMultiMusicElement = null;
 		selectedJScoreElement = null;
 	}
-
+	
+	// TODO: When the note is moved between two consecutive locations,
+	// the accidental of the note at it's previous location and the accidental
+	// of the new note could interfere. Not sure what the best way to deal with
+	// this is. For now we are just displaying a warning. 
 	public void moveSelectedNoteVertically(int offset)
 	{
 		if (selectedMusicElement == null
@@ -980,9 +1012,10 @@ public class Tester2 implements NoteReceiver
 		if (note.isRest())
 			return;
 
-		int pKeyNumber = getKeyNumber(note);
+		int pKeyNumber = getKeyNumber(note, getMusicElementIndex(selectedMusicElement));
+		int idx = getSelectedElementIndex();
 		pKeyNumber += offset;
-		setNoteKeyNumber(note, pKeyNumber);
+		setNoteKeyNumber(note, pKeyNumber, getMusicElementIndex(selectedMusicElement));
 		reloadScoreUI(selectedStaff);
 		magicMakeStaffsLineUp();
 	}
@@ -997,56 +1030,49 @@ public class Tester2 implements NoteReceiver
 		}
 		Voice v = getSelectedVoice();
 		MusicElement me = selectedMultiMusicElement;
-		int x = getSelectedElementX();
-		removeElementAtIndex(v, x);
-		insertElementAtIndex(v, me, x + offset);
+		int idx = getSelectedElementIndex();
+		removeElementAtIndex(v, idx);
+		insertElementAtIndex(v, me, idx + offset);
 		printVector(v);
 		reloadScoreUI(selectedStaff);
 		magicMakeStaffsLineUp();
 	}
-	
+
 	public void addNoteToEndOfTune(int pKeyNumber, Staff staff, boolean combineWithLast)
 	{
-		addNoteToEndOfTune(pKeyNumber, staff, combineWithLast, true);
-	}
-	
-	public void addNoteToEndOfTune(int pKeyNumber, Staff staff, boolean combineWithLast, boolean preferSharp)
-	{
-		if(!combineWithLast)
+		if (!combineWithLast)
 		{
 			int counts = countCounts(staff);
-			if(counts % 4 == 0 && counts > 0)
+			if (counts % 4 == 0 && counts > 0)
 			{
-				print("" + counts + " -> bar line");
+				//print("" + counts + " -> bar line");
 				addBarLine();
 			}
-			else if(counts % 2 == 0 && counts > 0)
+			else if (counts % 2 == 0 && counts > 0)
 			{
-				print("" + counts + " -> separator");
+				// This keeps notes from joining together
+				//print("" + counts + " -> separator"); 
 				addNotesSeparator();
 			}
 		}
-		
-		Note n = getNoteFromKeyNumber(pKeyNumber, preferSharp);
+
 		int index = getVoice(staff).size() - 2;
+		Note n = getNoteFromKeyNumber(pKeyNumber, index);
 		addNoteToTune(staff, n, index, combineWithLast);
-		if(!combineWithLast)
+		if (!combineWithLast)
 			addRest(getOppositeStaff(staff), index + 1);
 		magicMakeStaffsLineUp();
 	}
-	
+
 	public int countCounts(Staff staff)
 	{
 		int count = 0;
-		for(MusicElement me : (Vector<MusicElement>)getVoice(staff))
+		for (MusicElement me : (Vector<MusicElement>) getVoice(staff))
 		{
-			if(!(me instanceof BarLine ||
-					me instanceof KeySignature ||
-					me instanceof TimeSignature ||
-					me instanceof EndOfStaffLine ||
-					me instanceof NotesSeparator))
+			if (!(me instanceof BarLine || me instanceof KeySignature
+					|| me instanceof TimeSignature || me instanceof EndOfStaffLine || me instanceof NotesSeparator))
 			{
-				//print(me.getClass());				
+				// print(me.getClass());
 				count++;
 			}
 		}
@@ -1085,15 +1111,15 @@ public class Tester2 implements NoteReceiver
 	{
 		clearScore("D");
 	}
-	
+
 	public void clearScore(String key)
 	{
 		loadTuneFromString(Staff.TREBLE, "M:4/4\nK:" + key + "\n");
 		loadTuneFromString(Staff.BASS, "M:4/4\nK:" + key + " clef=bass\n");
-		insertElementAtIndex(getVoice(Staff.TREBLE), new EndOfStaffLine(), getVoice(Staff.TREBLE)
-				.size());
-		insertElementAtIndex(getVoice(Staff.BASS), new EndOfStaffLine(), getVoice(Staff.BASS)
-				.size());
+		insertElementAtIndex(getVoice(Staff.TREBLE), new EndOfStaffLine(),
+				getVoice(Staff.TREBLE).size());
+		insertElementAtIndex(getVoice(Staff.BASS), new EndOfStaffLine(),
+				getVoice(Staff.BASS).size());
 		reloadBothScores();
 	}
 
@@ -1110,10 +1136,9 @@ public class Tester2 implements NoteReceiver
 		appendElement(Staff.BASS, new NotesSeparator());
 	}
 
-// *************************** LOW-LEVEL NOTE EDITING METHODS ***************************
+	// *************************** LOW-LEVEL NOTE EDITING METHODS ***************************
 
-	// Removes note at specified index. If no note is present, replaces with a
-	// rest.
+	// Removes note at specified index. If no note is present, replaces with a rest.
 	public void removeNoteAtIndex(Voice v, Note note, int index)
 	{
 		MusicElement me = (MusicElement) v.get(index);
@@ -1221,7 +1246,7 @@ public class Tester2 implements NoteReceiver
 		}
 	}
 
-// ************************ MUSIC ELEMENT AND STAFF REFERENCE METHODS ************************
+	// ************************ MUSIC ELEMENT AND STAFF REFERENCE METHODS ************************
 
 	public void reloadBothScores()
 	{
@@ -1235,7 +1260,7 @@ public class Tester2 implements NoteReceiver
 		getScoreUI(staff).setTuneAndTemplate(getTune(staff), scoreTemplate);
 	}
 
-	public int getSelectedElementX()
+	public int getSelectedElementIndex()
 	{
 		return selectedMusicElement.getReference().getX();
 	}
@@ -1250,17 +1275,17 @@ public class Tester2 implements NoteReceiver
 	{
 		MusicElementReference ref = element.getMusicElement().getReference();
 		int x = ref.getX();
-		if(x == -1)
+		if (x == -1)
 			return null;
 		return (MusicElement) getSelectedVoice().get(x);
 	}
-
+	
 	// Returns actual note, not a clone!
 	public MusicElement getOriginalMusicElement(JScoreElement element)
 	{
 		MusicElementReference ref = element.getMusicElement().getReference();
 		int x = ref.getX();
-		if(x == -1)
+		if (x == -1)
 			return null;
 		MusicElement me = (MusicElement) getSelectedVoice().get(x);
 		int y = ref.getY();
@@ -1269,6 +1294,16 @@ public class Tester2 implements NoteReceiver
 		else
 			return me;
 	}
+	
+	public int getMusicElementIndex(JScoreElement element)
+	{
+		return element.getMusicElement().getReference().getX();
+	}
+	
+	public int getMusicElementIndex(MusicElement element)
+	{
+		return element.getReference().getX();
+	}	
 
 	public JScoreComponent getSelectedScoreUI()
 	{
@@ -1309,62 +1344,184 @@ public class Tester2 implements NoteReceiver
 		return (Voice) ((Vector) tune.getMusic().getVoices()).get(0);
 	}
 
-// *************************** NOTATION CONVERSION METHODS ***************************
+	// *************************** NOTATION CONVERSION METHODS ***************************
 
 	// Create an abc4j Note music element from the midi key number.
-	public Note getNoteFromKeyNumber(int pKeyNumber)
+	public Note getNoteFromKeyNumber(int pKeyNumber, int index)
 	{
 		Note n = new Note();
-		setNoteKeyNumber(n, pKeyNumber);
-		return n;
-	}
-	
-	public Note getNoteFromKeyNumber(int pKeyNumber, boolean preferSharp)
-	{
-		Note n = new Note();
-		setNoteKeyNumber(n, pKeyNumber, preferSharp);
+		setNoteKeyNumber(n, pKeyNumber, index);
 		return n;
 	}
 
-	public void setNoteKeyNumber(Note note, int pKeyNumber)
-	{
-		setNoteKeyNumber(note, pKeyNumber, true);
-	}
-	
-	
 	// Sets the abc4j Note height using the midi key number.
-	public void setNoteKeyNumber(Note note, int pKeyNumber, boolean preferSharp)
+	public void setNoteKeyNumber(Note note, int pKeyNumber, int index)
 	{
-		Accidental acc = Accidental.NONE;
-		byte height = getNoteHeightFloor(pKeyNumber);
-		byte relHeight = getRelativeNoteHeightFloor(pKeyNumber);
-		if (isNoteSharp(pKeyNumber))
+		// Note: For now we are assuming that the score will never have both sharps and flats.
+		// This is true of most music scores. Having both sharps and flats is only desirable
+		// if a note is played frequently both as a natural and an accidental. In this case
+		// it is sometimes simpler to reach the accidental from the opposite side.
+		// However, playing with these sorts of possibilities can sometimes paint you into a corner.
+		// For example, consider the case where the G flat and A sharp have been played in the same
+		// measure, but then G sharp (A flat) now needs to be played. This would require reversing
+		// one of the accidentals and then applying a new one in the opposite direction.
+		// Of course, this can be easily avoided by reverting to the previous assumption of using
+		// only flats or sharps. After all, there are more white keys than black keys.
+		// In fact, the only time this scenario could ever occur is with the G and A keys.
+		// In short, this is an optimization problem that gets a bit complicated to implement.
+		// It is much simpler to not allow such possibilities.
+		byte height;
+		byte relHeight;
+		if(useSharps)
 		{
-			byte relHeightCeil = getRelativeNoteHeightCeil(pKeyNumber);
-			if (trebleTune.getKey().getAccidentalFor(relHeight).isSharp())
-				acc = Accidental.NONE;
-			else if (trebleTune.getKey().getAccidentalFor(relHeightCeil).isFlat())
-			{
-				height = getNoteHeightCiel(pKeyNumber);
-				acc = Accidental.NONE;
-			}
-			else if(preferSharp)
-			{
-				acc = Accidental.SHARP;
-			}
-			else
-			{
-				height = getNoteHeightCiel(pKeyNumber);
-				acc = Accidental.FLAT;
-			}
+			height = getNoteHeightFloor(pKeyNumber);
+			relHeight = getRelativeNoteHeightFloor(pKeyNumber);
 		}
 		else
 		{
-			if (!trebleTune.getKey().getAccidentalFor(relHeight).isNatural())
-				acc = Accidental.NATURAL;
+			height = getNoteHeightCiel(pKeyNumber);
+			relHeight = getRelativeNoteHeightCeil(pKeyNumber);
 		}
+		
+		// Get accidental at position
+		Accidental aMeasure = getKeyAndMeasureAccidental(relHeight, index);
+		Accidental aNote = Accidental.NONE;
+		if (isNoteSharp(pKeyNumber))
+		{
+			if (useSharps ? aMeasure.isSharp() : aMeasure.isFlat())
+				aNote = Accidental.NONE;
+			else if (aMeasure.isNatural() || aMeasure.isNotDefined())
+				aNote = useSharps ? Accidental.SHARP : Accidental.FLAT;
+			else
+				print("Warning: Attempting to use a SHARP and a FLAT at the same note height.");
+		}
+		else
+		{
+			if (aMeasure.isSharp() || aMeasure.isFlat())
+				aNote = Accidental.NATURAL;
+		}
+		
+		// Make sure the accidental at the current index doesn't conflict with the one we 
+		// are trying to add to it.
+		Accidental aCurr = getCurrAccidental(relHeight, index);
+		if(aCurr.isDefined() && !aCurr.equals(aNote))
+			print("Warning: Attempting to add a conflicting accidental at current index: " + index + " Key: " + pKeyNumber);
 		note.setHeight(height);
-		note.setAccidental(acc);
+		note.setAccidental(aNote);
+	}
+	
+	// return all accidentals
+	public Accidental getCumAccidental(Note n, int index)
+	{
+		// Note: For the current accidental, we are using the note,
+		// rather than checking the current index in the music score.
+		// This allows conflicting accidentals to exist at the same index
+		// temporarily when editing.
+		byte relHeight = getNoteRelHeight(n);
+		Accidental a1 = getKeyAccidental(relHeight);
+		Accidental a2 = getMeasureAccidental(relHeight, index);
+		Accidental a3 = n.getAccidental();
+
+		// Assume accidentals override each other. This ignores the possibility of
+		// - double sharps or double flats
+		// - math (ie. sharp + sharp + flat = ?)
+		if (a3.isDefined())
+			return a3;
+		else if (a2.isDefined())
+			return a2;
+		else
+			return a1;
+	}	
+
+	// return key and measure accidental
+	public Accidental getKeyAndMeasureAccidental(byte relHeight, int index)
+	{
+		Accidental a1 = getKeyAccidental(relHeight);
+		Accidental a2 = getMeasureAccidental(relHeight, index);
+
+		// Assume accidentals override each other. This ignores the possibility of
+		// - double sharps or double flats
+		// - math (ie. sharp + sharp + flat = ?)
+		if (a2.isDefined())
+			return a2;
+		else
+			return a1;
+	}
+
+	public Accidental getKeyAccidental(byte relHeight)
+	{
+		return trebleTune.getKey().getAccidentalFor(relHeight);
+	}
+
+	// Returns the accidental (if any) used at previous indices in this measure
+	// at the given relative height
+	// Does not return the accidental of the key.
+	public Accidental getMeasureAccidental(byte relHeight, int index)
+	{
+		Accidental a = Accidental.NONE;
+		Vector<MusicElement> musicElements1 = (Vector<MusicElement>) getVoice(Staff.TREBLE);
+		Vector<MusicElement> musicElements2 = (Vector<MusicElement>) getVoice(Staff.BASS);
+		assert (index - 1 < musicElements1.size());
+		assert (index - 1 < musicElements2.size());
+		for (int i = 0; i < index; i++)
+		{
+			MusicElement me1 = musicElements1.get(i);
+			MusicElement me2 = musicElements2.get(i);
+			if (me1 instanceof BarLine || me2 instanceof BarLine)
+				a = Accidental.NONE;
+			else
+			{
+				// getMusicElementAccidental permits elements other than notes to be
+				// passed in
+				Accidental a1 = getMusicElementAccidental(me1, relHeight);
+				Accidental a2 = getMusicElementAccidental(me2, relHeight);
+				if (a1.isDefined()) // in other words, if a1 is not Accidental.None
+					a = a1;
+				else if (a2.isDefined())
+					a = a2;
+			}
+		}
+		return a;
+	}
+
+	// Returns the accidental (if any) used at the current index at the given
+	// relative height
+	// Does not return the accidental of the key.
+	public Accidental getCurrAccidental(byte relHeight, int index)
+	{
+		MusicElement me1 = (MusicElement) getVoice(Staff.TREBLE).get(index);
+		MusicElement me2 = (MusicElement) getVoice(Staff.BASS).get(index);
+		Accidental a1 = getMusicElementAccidental(me1, relHeight);
+		Accidental a2 = getMusicElementAccidental(me2, relHeight);
+		if (a1.isDefined()) // in other words, if a1 is not Accidental.None
+			return a1;
+		else
+			return a2;
+	}
+
+	public Accidental getMusicElementAccidental(MusicElement me, byte relHeight)
+	{
+		// Note: This assumes that there is only one accidental at the relative
+		// height.
+		// If there are more than one (ie. two separate C notes at different
+		// octaves,
+		// one sharp and one flat), then we have a problem.
+		// I'm pretty sure this is a big no-no in music.
+		if (me instanceof Note)
+		{
+			Note n = (Note) me;
+			if (!n.isRest() && getNoteRelHeight(n) == relHeight)
+				return n.getAccidental();
+		}
+		else if (me instanceof MultiNote)
+		{
+			for (Note n : (Vector<Note>) ((MultiNote) me).getNotes())
+			{
+				if (getNoteRelHeight(n) == relHeight)
+					return n.getAccidental();
+			}
+		}
+		return Accidental.NONE;
 	}
 
 	// Returns the relative position of the note within it's
@@ -1412,7 +1569,7 @@ public class Tester2 implements NoteReceiver
 	{
 		return (byte) (pKeyNumber - 60 - (isNoteSharp(pKeyNumber) ? 1 : 0));
 	}
-	
+
 	// Returns the note height, used for abc4j staff positioning.
 	// Rounds up if the note is sharp.
 	public byte getNoteHeightCiel(int pKeyNumber)
@@ -1426,7 +1583,7 @@ public class Tester2 implements NoteReceiver
 	{
 		return (byte) ((pKeyNumber - (isNoteSharp(pKeyNumber) ? 1 : 0)) % 12);
 	}
-	
+
 	// Returns the note height measured from A.
 	// Returns a number between 0 and 12
 	public byte getRelativeNoteHeightCeil(int pKeyNumber)
@@ -1436,99 +1593,94 @@ public class Tester2 implements NoteReceiver
 
 	// Returns the midi number of the key from it's abc4j note height and
 	// possible accidentals
-	public int getKeyNumber(byte noteHeight, Accidental keyAcc,
-			Accidental noteAcc)
+	public int getKeyNumber(byte noteHeight, Accidental acc)
 	{
-		if (noteAcc.isNatural()) // Natural has priority
-			return noteHeight + 60;
-		if (keyAcc.isFlat()) // Others are additive
+		if (acc.isFlat())
 			noteHeight--;
-		else if (keyAcc.isSharp())
-			noteHeight++;
-		if (noteAcc.isFlat())
-			noteHeight--;
-		else if (noteAcc.isSharp())
+		else if (acc.isSharp())
 			noteHeight++;
 		return noteHeight + 60;
 	}
 
 	// Returns the midi number of the key from it's abc4j Note object,
 	// using the key of the treble cleff.
-	public int getKeyNumber(Note n)
+	public int getKeyNumber(Note n, int index)
 	{
-		return getKeyNumber(
-				n.getHeight(),
-				trebleTune.getKey().getAccidentalFor(
-						(byte) ((n.getHeight() + 60) % 12)), n.getAccidental());
+		return getKeyNumber(n.getHeight(), getCumAccidental(n, index));
 	}
-	
+
+	public byte getNoteRelHeight(Note n)
+	{
+		return (byte) ((n.getHeight() + 60) % 12);
+	}
+
 	// Returns the midi number of the key from it's abc4j Note object,
 	// using the key of the treble cleff.
 	public int getKeyNumberWithoutAccidentals(Note n)
 	{
-		return getKeyNumber(n.getHeight(), Accidental.NONE, Accidental.NONE);
+		return getKeyNumber(n.getHeight(), Accidental.NONE);
 	}
-	
+
 	public String getMusicElementRepresentation(MusicElement me, Staff staff)
 	{
-		if(me instanceof NotesSeparator)
+		if (me instanceof NotesSeparator)
 			return " ";
-		else if(me instanceof KeySignature)
+		else if (me instanceof KeySignature)
 		{
-			return "K: " + ((KeySignature)me).toLitteralNotation() +
-					((staff == Staff.BASS) ? " clef=bass\n" : "\n");
+			return "K: " + ((KeySignature) me).toLitteralNotation()
+					+ ((staff == Staff.BASS) ? " clef=bass\n" : "\n");
 		}
-		else if(me instanceof TimeSignature)
+		else if (me instanceof TimeSignature)
 			return "M: " + me.toString() + "\n";
-		else if(me instanceof EndOfStaffLine)
+		else if (me instanceof EndOfStaffLine)
 			return "\n";
-		else if(me instanceof MultiNote)
-			return getMultiNoteRepresentation((MultiNote)me);
-		else if(me instanceof Note)
-			return getNoteRepresentation((Note)me);
+		else if (me instanceof MultiNote)
+			return getMultiNoteRepresentation((MultiNote) me);
+		else if (me instanceof Note)
+			return getNoteRepresentation((Note) me);
 		else
 			return me.toString();
 	}
-	
+
 	public String getMultiNoteRepresentation(MultiNote mn)
 	{
 		String score = "";
-		for(Note note : (Vector<Note>)mn.getNotes())
+		for (Note note : (Vector<Note>) mn.getNotes())
 		{
 			score += getNoteRepresentation(note);
 		}
 		return "[" + score + "]";
 	}
-	
+
 	public String getNoteRepresentation(Note note)
 	{
-		if(note.isRest())
+		if (note.isRest())
 		{
-			if(note.isRestInvisible())
+			if (note.isRestInvisible())
 				return "x";
 			else
 				return "z";
 		}
 		String score = "";
-		if(note.getAccidental().isSharp())
+		if (note.getAccidental().isSharp())
 			score = "^";
-		else if(note.getAccidental().isFlat())
+		else if (note.getAccidental().isFlat())
 			score = "_";
-		else if(note.getAccidental().isNatural())
+		else if (note.getAccidental().isNatural())
 			score = "=";
 		int pKeyNumber = getKeyNumberWithoutAccidentals(note);
 		int notePosition = getNotePositionRelA(pKeyNumber);
 		int nOctave = getOctave(pKeyNumber);
-		if(nOctave <= 5)
-			score += (char)(65 + notePosition);
+		if (nOctave <= 5)
+			score += (char) ('A' + notePosition);
 		else
-			score += (char)(97 + notePosition);
-		while(nOctave < 5)
+			score += (char) ('a' + notePosition);
+		while (nOctave < 5)
 		{
 			score += ",";
 			nOctave += 1;
 		}
-		while(nOctave > 6)
+		while (nOctave > 6)
 		{
 			score += "'";
 			nOctave -= 1;

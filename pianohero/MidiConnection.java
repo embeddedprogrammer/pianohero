@@ -44,6 +44,10 @@ public class MidiConnection implements Receiver
       mReceiverList.add(pReceiver);      
    }
    
+	public static final int NOTE_ON = 0x90;
+	public static final int NOTE_OFF = 0x80;
+	public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+   
    public void send(MidiMessage message, long lTimeStamp)
    {
       if (message instanceof ShortMessage)
@@ -53,8 +57,31 @@ public class MidiConnection implements Receiver
             @Override
             public void run()
             {
+            	// Print stuff
+//					ShortMessage sm = shortMessage;
+//					System.out.print("Channel: " + sm.getChannel() + " ");
+//					if (sm.getCommand() == NOTE_ON) {
+//					    int key = sm.getData1();
+//					    int octave = (key / 12)-1;
+//					    int note = key % 12;
+//					    String noteName = NOTE_NAMES[note];
+//					    int velocity = sm.getData2();
+//					    System.out.println("Note on, " + noteName + octave + " key=" + key + " velocity: " + velocity);
+//					} else if (sm.getCommand() == NOTE_OFF) {
+//					    int key = sm.getData1();
+//					    int octave = (key / 12)-1;
+//					    int note = key % 12;
+//					    String noteName = NOTE_NAMES[note];
+//					    int velocity = sm.getData2();
+//					    System.out.println("Note off, " + noteName + octave + " key=" + key + " velocity: " + velocity);
+//					} else {
+//					    System.out.println("Command:" + sm.getCommand());
+//					}
+            	
+            	// Do stuff
                if(shortMessage.getCommand() == 0x80 || 
-                     (shortMessage.getCommand() == 0x90) && (shortMessage.getData2() == 0))
+                     //(shortMessage.getCommand() == 0x90) && (shortMessage.getData2() == 0))               		
+                     (shortMessage.getCommand() == 0x90) && (shortMessage.getData2() == 64)) //64 is a hack to make it work on our old piano
                {
                   noteOff(shortMessage.getData1());
                }
@@ -66,7 +93,11 @@ public class MidiConnection implements Receiver
             }
          });
       }
-   }
+		else
+		{
+			System.out.println("Other message: " + message.getClass());
+		}
+	}
    
    public void noteOff(int mKeyNumber)
    {
