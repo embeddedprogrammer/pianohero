@@ -282,11 +282,11 @@ public class Tester2 implements NoteReceiver
 	public void generateRandomScore()
 	{
 		print("Generating random score");
-		if (getRandomBool())
-			generateRandomNotes();
-		else
-			generateRandomChords();
-		// generateRandomScales();
+		//if (getRandomBool())
+		//generateRandomNotes();
+		//else
+		//	generateRandomChords();
+		generateRandomScales();
 	}
 
 	public void generateRandomNotes()
@@ -316,8 +316,8 @@ public class Tester2 implements NoteReceiver
 	private static final int[] CHORD_6TH = { 0, 4, 7, 9 };
 	private static final int[] CHORD_7TH = { 0, 4, 7, 10 };
 	private static final int[][] CHORDS = { CHORD_MAJOR, CHORD_MINOR, CHORD_AUG, CHORD_DIM, CHORD_6TH, CHORD_7TH };
-	private static final String[] SHARP_KEYS = { "C", "G", "D", "A", "E", "B" };    // , "F#", "C#"};
-	private static final String[] FLAT_KEYS = { "C", "F", "Bb", "Eb", "Ab", "Db" }; // , "Gb", "Cb"};
+	private static final String[] SHARP_KEYS = { "C", "G", "D", "A"};//, "E", "B" };    // , "F#", "C#"};
+	private static final String[] FLAT_KEYS = { "C", "F", "Bb", "Eb"};//, "Ab", "Db" }; // , "Gb", "Cb"};
 
 	//
 	// add octave
@@ -632,8 +632,7 @@ public class Tester2 implements NoteReceiver
 //			addNoteToTune(staff, n, index, combineWithLast);
 //			if (!combineWithLast)
 //				addRest(getOppositeStaff(staff), index + 1);
-			addNoteToEndOfTune(pKeyNumber, 
-					(pKeyNumber > 60) ? Staff.TREBLE : Staff.BASS, combineWithLast);
+			addNoteToEndOfTune(pKeyNumber, (pKeyNumber > 60) ? Staff.TREBLE : Staff.BASS, combineWithLast);
 			lastTimePressed = timeStamp;
 		}
 		else if (ControlBar.getInstance().selectedButton == ControlBar.getInstance().editButton)
@@ -1051,16 +1050,16 @@ public class Tester2 implements NoteReceiver
 			else if (counts % 2 == 0 && counts > 0)
 			{
 				// This keeps notes from joining together
-				//print("" + counts + " -> separator"); 
+				//print("" + counts + " -> separator");
 				addNotesSeparator();
 			}
 		}
 
-		int index = getVoice(staff).size() - 2;
+		int index = getVoice(staff).size() - (combineWithLast ? 2 : 1);
 		Note n = getNoteFromKeyNumber(pKeyNumber, index);
 		addNoteToTune(staff, n, index, combineWithLast);
 		if (!combineWithLast)
-			addRest(getOppositeStaff(staff), index + 1);
+			addRest(getOppositeStaff(staff));
 		magicMakeStaffsLineUp();
 	}
 
@@ -1079,22 +1078,17 @@ public class Tester2 implements NoteReceiver
 		return count;
 	}
 
-	public void addNoteToTune(Staff staff, Note note, int index,
-			boolean combineNote)
+	public void addNoteToTune(Staff staff, Note note, int index, boolean combineNote)
 	{
 		Voice v = getVoice(staff);
 		if (combineNote && v.get(index) instanceof NoteAbstract)
-		{
 			addNoteAtIndex(v, note, index);
-		}
 		else
-		{
-			insertElementAtIndex(v, note, index + 1);
-		}
+			insertElementAtIndex(v, note, index);
 		reloadScoreUI(staff);
 	}
 
-	public void addRest(Staff staff, int index)
+	public void addRest(Staff staff)
 	{
 		Note n = new Note(Note.REST);
 		n.setInvisibleRest(REST_INVISIBLE);

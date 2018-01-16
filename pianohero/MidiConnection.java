@@ -47,6 +47,7 @@ public class MidiConnection implements Receiver
 	public static final int NOTE_ON = 0x90;
 	public static final int NOTE_OFF = 0x80;
 	public static final String[] NOTE_NAMES = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+	public boolean[] noteStates = new boolean[200];
    
    public void send(MidiMessage message, long lTimeStamp)
    {
@@ -81,14 +82,16 @@ public class MidiConnection implements Receiver
             	// Do stuff
                if(shortMessage.getCommand() == 0x80 || 
                      //(shortMessage.getCommand() == 0x90) && (shortMessage.getData2() == 0))               		
-                     (shortMessage.getCommand() == 0x90) && (shortMessage.getData2() == 64)) //64 is a hack to make it work on our old piano
+                     (shortMessage.getCommand() == 0x90) && (shortMessage.getData2() == 64) && noteStates[shortMessage.getData1()]) //64 is a hack to make it work on our old piano
                {
                   noteOff(shortMessage.getData1());
+                  noteStates[shortMessage.getData1()] = false;
                }
                else if (shortMessage.getCommand() == 0x90)
    
                {
                   noteOn(shortMessage.getData1());
+                  noteStates[shortMessage.getData1()] = true;
                }
             }
          });
