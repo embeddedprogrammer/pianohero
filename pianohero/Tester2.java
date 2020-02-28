@@ -285,8 +285,8 @@ public class Tester2 implements NoteReceiver
 		//if (getRandomBool())
 		//generateRandomNotes();
 		//else
-		//	generateRandomChords();
-		generateRandomScales();
+		generateRandomChords();
+		//generateRandomScales();
 	}
 
 	public void generateRandomNotes()
@@ -1378,7 +1378,7 @@ public class Tester2 implements NoteReceiver
 		}
 		
 		// Get accidental at position
-		Accidental aMeasure = getKeyAndMeasureAccidental(relHeight, index);
+		Accidental aMeasure = getKeyAndMeasureAccidental(height, relHeight, index);
 		Accidental aNote = Accidental.NONE;
 		if (isNoteSharp(pKeyNumber))
 		{
@@ -1397,7 +1397,7 @@ public class Tester2 implements NoteReceiver
 		
 		// Make sure the accidental at the current index doesn't conflict with the one we 
 		// are trying to add to it.
-		Accidental aCurr = getCurrAccidental(relHeight, index);
+		Accidental aCurr = getCurrAccidental(height, index);
 		if(aCurr.isDefined() && !aCurr.equals(aNote))
 			print("Warning: Attempting to add a conflicting accidental at current index: " + index + " Key: " + pKeyNumber);
 		note.setHeight(height);
@@ -1413,7 +1413,8 @@ public class Tester2 implements NoteReceiver
 		// temporarily when editing.
 		byte relHeight = getNoteRelHeight(n);
 		Accidental a1 = getKeyAccidental(relHeight);
-		Accidental a2 = getMeasureAccidental(relHeight, index);
+		byte height = getNoteHeight(n);
+		Accidental a2 = getMeasureAccidental(height, index);
 		Accidental a3 = n.getAccidental();
 
 		// Assume accidentals override each other. This ignores the possibility of
@@ -1428,10 +1429,10 @@ public class Tester2 implements NoteReceiver
 	}	
 
 	// return key and measure accidental
-	public Accidental getKeyAndMeasureAccidental(byte relHeight, int index)
+	public Accidental getKeyAndMeasureAccidental(byte height, byte relHeight, int index)
 	{
 		Accidental a1 = getKeyAccidental(relHeight);
-		Accidental a2 = getMeasureAccidental(relHeight, index);
+		Accidental a2 = getMeasureAccidental(height, index);
 
 		// Assume accidentals override each other. This ignores the possibility of
 		// - double sharps or double flats
@@ -1450,7 +1451,7 @@ public class Tester2 implements NoteReceiver
 	// Returns the accidental (if any) used at previous indices in this measure
 	// at the given relative height
 	// Does not return the accidental of the key.
-	public Accidental getMeasureAccidental(byte relHeight, int index)
+	public Accidental getMeasureAccidental(byte height, int index)
 	{
 		Accidental a = Accidental.NONE;
 		Vector<MusicElement> musicElements1 = (Vector<MusicElement>) getVoice(Staff.TREBLE);
@@ -1467,8 +1468,8 @@ public class Tester2 implements NoteReceiver
 			{
 				// getMusicElementAccidental permits elements other than notes to be
 				// passed in
-				Accidental a1 = getMusicElementAccidental(me1, relHeight);
-				Accidental a2 = getMusicElementAccidental(me2, relHeight);
+				Accidental a1 = getMusicElementAccidental(me1, height);
+				Accidental a2 = getMusicElementAccidental(me2, height);
 				if (a1.isDefined()) // in other words, if a1 is not Accidental.None
 					a = a1;
 				else if (a2.isDefined())
@@ -1481,37 +1482,31 @@ public class Tester2 implements NoteReceiver
 	// Returns the accidental (if any) used at the current index at the given
 	// relative height
 	// Does not return the accidental of the key.
-	public Accidental getCurrAccidental(byte relHeight, int index)
+	public Accidental getCurrAccidental(byte height, int index)
 	{
 		MusicElement me1 = (MusicElement) getVoice(Staff.TREBLE).get(index);
 		MusicElement me2 = (MusicElement) getVoice(Staff.BASS).get(index);
-		Accidental a1 = getMusicElementAccidental(me1, relHeight);
-		Accidental a2 = getMusicElementAccidental(me2, relHeight);
+		Accidental a1 = getMusicElementAccidental(me1, height);
+		Accidental a2 = getMusicElementAccidental(me2, height);
 		if (a1.isDefined()) // in other words, if a1 is not Accidental.None
 			return a1;
 		else
 			return a2;
 	}
 
-	public Accidental getMusicElementAccidental(MusicElement me, byte relHeight)
+	public Accidental getMusicElementAccidental(MusicElement me, byte height)
 	{
-		// Note: This assumes that there is only one accidental at the relative
-		// height.
-		// If there are more than one (ie. two separate C notes at different
-		// octaves,
-		// one sharp and one flat), then we have a problem.
-		// I'm pretty sure this is a big no-no in music.
 		if (me instanceof Note)
 		{
 			Note n = (Note) me;
-			if (!n.isRest() && getNoteRelHeight(n) == relHeight)
+			if (!n.isRest() && getNoteHeight(n) == height)
 				return n.getAccidental();
 		}
 		else if (me instanceof MultiNote)
 		{
 			for (Note n : (Vector<Note>) ((MultiNote) me).getNotes())
 			{
-				if (getNoteRelHeight(n) == relHeight)
+				if (getNoteHeight(n) == height)
 					return n.getAccidental();
 			}
 		}
@@ -1603,6 +1598,11 @@ public class Tester2 implements NoteReceiver
 		return getKeyNumber(n.getHeight(), getCumAccidental(n, index));
 	}
 
+	public byte getNoteHeight(Note n)
+	{
+		return (byte) (n.getHeight() + 60);
+	}	
+	
 	public byte getNoteRelHeight(Note n)
 	{
 		return (byte) ((n.getHeight() + 60) % 12);
